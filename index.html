@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>头部跟踪与3D场景</title>
+    <link rel="stylesheet" href="css.css" />
+    <!-- 外部依赖库 -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- 双画布布局容器 -->
+    <div id="split-layout">
+      <!-- 左侧画布容器（原始画布） -->
+      <div id="left-canvas-container">
+        <div id="three-js-container"></div>
+      </div>
+
+      <!-- 可拖动分隔线 -->
+      <div id="divider"></div>
+
+      <!-- 右侧画布容器（新相机画布） -->
+      <div id="right-canvas-container">
+        <canvas id="sync-camera-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 头部跟踪画布 -->
+    <canvas class="output_canvas" width="256" height="144"></canvas>
+
+    <!-- 校准界面 -->
+    <div id="calibration-overlay">
+      <div class="calibration-content">
+        <h2>头部跟踪校准</h2>
+        <p>
+          请调整您的头部至与屏幕平行的状态以获得更佳的体验，然后点击下方按钮确认。
+        </p>
+        <button id="calibrate-btn">确认校准</button>
+      </div>
+    </div>
+
+    <!-- 参数校准控制面板 -->
+    <div
+      id="calibration-panel"
+      style="
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        z-index: 1000;
+        display: none;
+        width: 280px;
+      "
+    >
+      <div
+        style="
+          font-weight: bold;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #555;
+          padding-bottom: 5px;
+        "
+      >
+        参数校准控制
+      </div>
+
+      <div style="margin-bottom: 8px">
+        <strong>旋转灵敏度</strong><br />
+        Yaw:
+        <input
+          type="range"
+          id="yaw-sensitivity"
+          min="0.1"
+          max="3"
+          step="0.1"
+          value="0.6"
+          style="width: 200px"
+        />
+        <span id="yaw-sensitivity-val">0.6</span><br />
+        Pitch:
+        <input
+          type="range"
+          id="pitch-sensitivity"
+          min="0.1"
+          max="3"
+          step="0.1"
+          value="1.0"
+          style="width: 200px"
+        />
+        <span id="pitch-sensitivity-val">1.0</span><br />
+        Roll:
+        <input
+          type="range"
+          id="roll-sensitivity"
+          min="0.1"
+          max="3"
+          step="0.1"
+          value="0.4"
+          style="width: 200px"
+        />
+        <span id="roll-sensitivity-val">0.4</span>
+      </div>
+
+      <div style="margin-bottom: 8px">
+        <strong>平移灵敏度</strong><br />
+        X:
+        <input
+          type="range"
+          id="x-sensitivity"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value="0.1"
+          style="width: 200px"
+        />
+        <span id="x-sensitivity-val">0.1</span><br />
+        Y:
+        <input
+          type="range"
+          id="y-sensitivity"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value="0.05"
+          style="width: 200px"
+        />
+        <span id="y-sensitivity-val">0.05</span><br />
+        Z:
+        <input
+          type="range"
+          id="z-sensitivity"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value="0.1"
+          style="width: 200px"
+        />
+        <span id="z-sensitivity-val">0.1</span>
+      </div>
+
+      <button
+        id="toggle-panel"
+        style="margin-top: 10px; padding: 5px 10px; cursor: pointer"
+      >
+        隐藏面板
+      </button>
+      <button
+        id="reset-calibration"
+        style="margin-top: 10px; padding: 5px 10px; cursor: pointer"
+      >
+        重置参数
+      </button>
+    </div>
+
+    <button
+      id="show-panel-btn"
+      style="
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        padding: 8px 12px;
+        cursor: pointer;
+        z-index: 999;
+        display: none;
+      "
+    >
+      显示校准面板
+    </button>
+
+    <!-- 主脚本 -->
+    <script type="module" src="three-js-scene.js"></script>
+
+    <!-- 分隔线拖拽脚本 -->
+    <script>
+      const splitLayout = document.getElementById("split-layout");
+      const divider = document.getElementById("divider");
+      const leftContainer = document.getElementById("left-canvas-container");
+      const rightContainer = document.getElementById("right-canvas-container");
+      const threeJsContainer = document.getElementById("three-js-container");
+      const syncCanvas = document.getElementById("sync-camera-canvas");
+
+      let isDragging = false;
+      let startX = 0;
+      let startLeftWidth = 0;
+
+      divider.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startLeftWidth = leftContainer.offsetWidth;
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+
+        const deltaX = e.clientX - startX;
+        const newLeftWidth = Math.max(
+          100,
+          Math.min(window.innerWidth - 100, startLeftWidth + deltaX)
+        );
+        const leftPercent = (newLeftWidth / window.innerWidth) * 100;
+        const rightPercent = 100 - leftPercent;
+
+        leftContainer.style.width = leftPercent + "%";
+        rightContainer.style.width = rightPercent + "%";
+
+        window.dispatchEvent(
+          new CustomEvent("canvasResize", {
+            detail: {
+              leftWidth: newLeftWidth,
+              rightWidth: window.innerWidth - newLeftWidth,
+            },
+          })
+        );
+      });
+
+      document.addEventListener("mouseup", () => {
+        if (isDragging) {
+          isDragging = false;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        }
+      });
+
+      window.addEventListener("canvasResize", (e) => {
+        const { leftWidth, rightWidth } = e.detail;
+
+        const originalCanvas = threeJsContainer.querySelector("canvas");
+        if (originalCanvas) {
+          const renderer = originalCanvas.renderer;
+          if (renderer) {
+            renderer.setSize(leftWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+          }
+        }
+
+        if (syncCanvas) {
+          const syncRenderer = syncCanvas.renderer;
+          if (syncRenderer) {
+            syncRenderer.setSize(rightWidth, window.innerHeight);
+            syncRenderer.setPixelRatio(window.devicePixelRatio);
+          }
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        const leftWidth = leftContainer.offsetWidth;
+        const rightWidth = rightContainer.offsetWidth;
+
+        window.dispatchEvent(
+          new CustomEvent("canvasResize", {
+            detail: { leftWidth, rightWidth },
+          })
+        );
+      });
+    </script>
+  </body>
+</html>

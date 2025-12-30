@@ -1,0 +1,224 @@
+.abs {
+  position: absolute;
+}
+
+a {
+  color: white;
+  text-decoration: none;
+}
+
+a:hover {
+  color: lightblue;
+}
+
+body {
+  bottom: 0;
+  font-family: "Segoe UI", "Titillium Web", Arial, sans-serif;
+  color: black;
+  left: 0;
+  margin: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform-origin: 0px 0px;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: white;
+}
+
+.container {
+  position: absolute;
+  background-color: white;
+  width: 100%;
+  max-height: 100%;
+}
+
+.input_video {
+  display: none !important;
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.input_video.selfie {
+  transform: scale(-1, 1);
+  -webkit-transform: scale(-1, 1);
+}
+
+.input_image {
+  position: absolute;
+}
+
+.output_canvas {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  max-width: 100%;
+  display: block;
+  border: 1px solid rgb(0, 0, 0);
+  z-index: 2;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: move;
+}
+
+.logo {
+  bottom: 10px;
+  right: 20px;
+}
+
+.logo .title {
+  color: white;
+  font-size: 28px;
+}
+
+.logo .subtitle {
+  position: relative;
+  color: white;
+  font-size: 10px;
+  left: -30px;
+  top: 20px;
+}
+
+/* 校准界面样式 */
+#calibration-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+  transition: opacity 0.5s ease;
+}
+
+.calibration-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  margin: 0 auto;
+  display: block;
+}
+
+.calibration-content h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 24px;
+}
+
+.calibration-content p {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+#calibrate-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  font-size: 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#calibrate-btn:hover {
+  background-color: #45a049;
+}
+
+#calibrate-btn:active {
+  background-color: #3e8e41;
+  transform: translateY(1px);
+}
+
+/* 调整角度信息显示的层级，确保它显示在Three.js场景上方 */
+#angle-info {
+  z-index: 2 !important;
+  width: 280px;
+  min-height: 180px;
+}
+
+/* Three.js场景容器样式 */
+#three-js-container {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+}
+
+/* 双画布布局容器 */
+#split-layout {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  z-index: 1;
+}
+
+/* 左侧画布容器 */
+#left-canvas-container {
+  width: 50%;
+  height: 100%;
+  background-color: #f0f0f0;
+  overflow: hidden;
+}
+
+/* 右侧画布容器 */
+#right-canvas-container {
+  width: 50%;
+  height: 100%;
+  background-color: #e8e8e8;
+  overflow: hidden;
+}
+
+/* 可拖动分隔线 */
+#divider {
+  width: 6px;
+  height: 100%;
+  background-color: #ccc;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+#divider:hover {
+  background-color: #999;
+}
+
+#divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 40px;
+  background-color: #666;
+  border-radius: 2px;
+}
+
+/* 同步相机画布 */
+#sync-camera-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
